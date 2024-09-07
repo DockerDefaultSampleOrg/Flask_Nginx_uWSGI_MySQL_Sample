@@ -1,0 +1,53 @@
+version: '3.9'
+
+services:
+  flask:
+    container_name: Flask
+    build:
+      context: .
+      dockerfile: Docker/Flask/Dockerfile.dev
+    platform: linux/x86_64
+    ports:
+      - "50000:5000"
+    env_file:
+      - .env.development
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    container_name: MySQL
+    build:
+      context: .
+      dockerfile: Docker/MySQL/Dockerfile.dev
+    platform: linux/x86_64
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - .env.development
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u${MYSQL_USER} -p${MYSQL_PASSWORD}
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  phpmyadmin:
+    container_name: phpMyAdmin
+    image: phpmyadmin/phpmyadmin
+    environment:
+      PMA_ARBITRARY: 1
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "4000:80"
+    volumes:
+      - phpmyadmin:/sessions
+    depends_on:
+      - db
+
+volumes:
+  mysql_data:
+  phpmyadmin:
+
